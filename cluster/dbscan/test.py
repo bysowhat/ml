@@ -1,7 +1,7 @@
 import numpy as np
 from dbscan import SKDBSCAN
 from cluster.data.base import Data
-from cluster.groundplane.groundplane import GroundPlaneSimple
+from groundplane.groundplane import GroundPlaneSimple
 
 
 def main():
