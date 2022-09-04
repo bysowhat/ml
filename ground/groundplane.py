@@ -89,6 +89,39 @@ class GroundPlane(GroundPlaneSimple):
         #     self.datas.show(p)
         return points_list
     
+    def get_mask(self, dis, bins=10, th_pt=0.5):
+        min = np.min(dis)
+        max = np.max(dis)
+        bin = (max-min)/bins
+        sum_num = dis.shape[0]
+        num_list = []
+        mask_list = []
+        for i in range(bins):
+            mask0 = dis > min + i*bin
+            mask1 = dis <= min + (i+1)*bin
+            num_list.append(np.sum(mask0*mask1))
+            mask_list.append(np.logical_and(mask0, mask1))
+        
+        results = []
+        min_start = 0
+        min_end = 0
+        min_l = 9999
+        for i in range(bins):
+            pt = 0.0
+            for j in range(i, bins, 1):
+                pt += num_list[j]/sum_num
+                if pt > th_pt:
+                    results.append((i, j))
+                    if j-i < min_l:
+                        min_end = j
+                        min_start = i
+                        min_l = j - i           
+
+        mask = mask_list[min_start]
+        for i in range(min_start, min_end+1, 1):
+            mask = np.logical_or(mask, mask_list[i])
+        return mask
+    
     def _segment_ground(self, points):
         seeds = self.get_seeds(points)
         print('start iter')
@@ -102,12 +135,7 @@ class GroundPlane(GroundPlaneSimple):
             print(np.mean(dis))
             if np.abs(np.mean(dis)) < self.stop_min:
                 break
-            num0 = np.sum(dis<np.mean(dis))
-            num1 = np.sum(dis>np.mean(dis))
-            if num0 > num1:
-                mask = dis < np.mean(dis)
-            else:
-                mask = dis >= np.mean(dis)
+            mask = self.get_mask(dis)
             seeds = seeds[mask]
             # self.datas.show_points_on_ground(seeds, plane)
         return plane
