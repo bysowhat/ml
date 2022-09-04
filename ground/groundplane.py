@@ -26,6 +26,7 @@ class GroundPlane(GroundPlaneSimple):
                  th_dis=0.2, 
                  hmin=-2.2, 
                  hmax=-1.4,
+                 stop_min = 0.1,
                  datas=None):
         super().__init__(pc_range)
         self.split_num = split_num
@@ -37,6 +38,7 @@ class GroundPlane(GroundPlaneSimple):
         self.hmin = hmin
         self.hmax = hmax
         self.datas = datas
+        self.stop_min = stop_min
 
     @staticmethod
     def points_2_plane_dis(points, plane):
@@ -94,22 +96,28 @@ class GroundPlane(GroundPlaneSimple):
             plane = self.compute_plane(seeds)
             # self.datas.show_points_on_ground(seeds, plane)
             dis = self.points_2_plane_dis(points, plane)
+            mask = np.abs(dis) < self.th_dis
+            dis = dis[mask]
+            seeds = points[mask]
             print(np.mean(dis))
+            if np.abs(np.mean(dis)) < self.stop_min:
+                break
             num0 = np.sum(dis<np.mean(dis))
             num1 = np.sum(dis>np.mean(dis))
             if num0 > num1:
                 mask = dis < np.mean(dis)
             else:
                 mask = dis >= np.mean(dis)
-            seeds = points[mask]
-            # self.datas.show_points_on_ground(points[mask], plane)
+            seeds = seeds[mask]
+            # self.datas.show_points_on_ground(seeds, plane)
         return plane
 
     def segment_ground(self, points):
         points_list = self.split_points(points)
         plane_list = []
         for ps in points_list:
-            plane_list.append(self._segment_ground(ps))
+            # plane_list.append(self._segment_ground(ps))
+            plane_list.append(self._segment_ground(points_list[1]))
         return plane_list, self.x_ths
 
 if __name__ == '__main__':
@@ -135,9 +143,9 @@ if __name__ == '__main__':
         pc_range = [-50, 50, -50, 50, -5, 3.0]
         # pc_range = [-50, 50, -50, 50, -2.2, -1.4]
 
-        gp = GroundPlane(pc_range,max_iter=4, n_lpr=200, th_seed=0.6, th_dis=0.6, hmin = -2.2, hmax = -1.4, datas=datas)
+        gp = GroundPlane(pc_range,max_iter=4, n_lpr=200, th_seed=0.6, th_dis=0.6, hmin = -2.2, hmax = -1.4, stop_min=0.1, datas=datas)
         for i,points in enumerate(datas):
-            if i==0:
+            if i < 1:
                 continue
             points = gp.filter_points(points)
             # datas.show(points)
